@@ -13,7 +13,7 @@ def gen_auth(username, password):
     nonce = "".join(hexdigits[int(random() * 16)] for x in range(32))
     created = datetime.utcnow().isoformat() + "Z"
     password_digest = "%s%s%s" % (nonce, created, 'airplane')
-    password_digest = sha(password_digest).digest().encode("base64")
+    password_digest = sha(password_digest).digest().encode("base64").strip()
     return 'UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s"' % (username, password_digest, nonce, created)
 
 def test_working():
@@ -65,7 +65,7 @@ def test_old():
     nonce = "".join(hexdigits[int(random() * 16)] for x in range(32))
     created = created.isoformat() + "Z"
     password_digest = "%s%s%s" % (nonce, created, password)
-    password_digest = sha(password_digest).digest().encode("base64")
+    password_digest = sha(password_digest).digest().encode("base64").strip()
     auth =  'UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s"' % (username, password_digest, nonce, created)
 
     wsse_app = WSSEAuthMiddleware(wsgi_app, users)
@@ -94,7 +94,7 @@ def test_bad_digest():
     nonce = "".join(hexdigits[int(random() * 16)] for x in range(32))
     created = datetime.utcnow().isoformat() + "Z"
     password_digest = "%s%s%s" % (nonce, created, 'airplane')
-    password_digest = sha(password_digest).digest().encode("base64")
+    password_digest = sha(password_digest).digest().encode("base64").strip()
     auth =  'UsernameToken Username="%s", PasswordDigest="%sbogus", Nonce="%s", Created="%s"' % ('jefferson', password_digest, nonce, created)
 
     test_app = paste.fixture.TestApp(wsse_app, extra_environ={

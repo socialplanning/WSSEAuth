@@ -53,11 +53,15 @@ class WSSEAuthMiddleware:
 
         if environ.get('HTTP_AUTHORIZATION', None) != 'WSSE profile="UsernameToken"':
             if self.required:
+                print "No header"
                 return self._fail(start_response)
             else:
                 return self.app(environ, start_response)
 
-        header = environ['HTTP_X_WSSE']
+        header = environ.get('HTTP_X_WSSE', None)
+        if not header:
+            return self._fail(start_response)            
+        
         wsse_re = re.compile('UsernameToken Username="([^"]+)", PasswordDigest="([^"]+)", Nonce="([^"]+)", Created="([^"]+)"')
         match = wsse_re.match(header)
         if not match:
@@ -88,7 +92,7 @@ class WSSEAuthMiddleware:
             self.nonces_by_time.pop()
 
         key = "%s%s%s" % (nonce, created, password)        
-        if not digest == sha(key).digest().encode("base64"):
+        if not digest == sha(key).digest().encode("base64").strip():
             return self._fail(start_response)
 
         environ['REMOTE_USER'] = username
