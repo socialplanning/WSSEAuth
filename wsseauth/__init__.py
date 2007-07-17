@@ -53,34 +53,39 @@ class WSSEAuthMiddleware:
 
         if environ.get('HTTP_AUTHORIZATION', None) != 'WSSE profile="UsernameToken"':
             if self.required:
-                print "No header"
+                #print "no http_auth", environ
                 return self._fail(start_response)
             else:
                 return self.app(environ, start_response)
 
         header = environ.get('HTTP_X_WSSE', None)
         if not header:
+            #print "no header"
             return self._fail(start_response)            
         
         wsse_re = re.compile('UsernameToken Username="([^"]+)", PasswordDigest="([^"]+)", Nonce="([^"]+)", Created="([^"]+)"')
         match = wsse_re.match(header)
         if not match:
+            #print "Bad format"
             return self._fail(start_response) #bad format
 
         username = match.group(1)
         password = self.user_dict.get(username.lower())
         if not password:
+            #print "no user %s password" % username
             return self._fail(start_response)
         digest = match.group(2)
         nonce = match.group(3)
         created = match.group(4)
 
         if nonce in self.nonces_set:
+            #print "already used this nonce"
             return self._fail(start_response)
 
         created_date = parse_w3dtf(created)
         five_minutes_ago = datetime.datetime.now() - datetime.timedelta(0, 300, 0)
         if created_date < five_minutes_ago:
+            #print "too old"
             return self._fail(start_response) #too old
 
         self.nonces_set.add(nonce)
@@ -93,6 +98,7 @@ class WSSEAuthMiddleware:
 
         key = "%s%s%s" % (nonce, created, password)        
         if not digest == sha(key).digest().encode("base64").strip():
+            #print "did not match"
             return self._fail(start_response)
 
         environ['REMOTE_USER'] = username
