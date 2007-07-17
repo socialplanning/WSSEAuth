@@ -1,0 +1,14 @@
+setup.cfg
+setup.py
+WSSEAuth.egg-info/PKG-INFO
+WSSEAuth.egg-info/SOURCES.txt
+WSSEAuth.egg-info/dependency_links.txt
+WSSEAuth.egg-info/entry_points.txt
+WSSEAuth.egg-info/not-zip-safe
+WSSEAuth.egg-info/paster_plugins.txt
+WSSEAuth.egg-info/top_level.txt
+wsseauth/__init__.py
+wsseauth/fifo.py
+wsseauth/tests/test_fifo.py
+wsseauth/tests/test_w3dtf.py
+wsseauth/tests/test_wsse.py
