@@ -1,20 +1,12 @@
 from sha import sha
 import paste.fixture
-from wsseauth import WSSEAuthMiddleware
+from wsseauth import WSSEAuthMiddleware, wsse_header
 from random import random
 from datetime import datetime, timedelta
 
 def wsgi_app(environ, start_response):
     start_response('200 OK', [('content-type', 'text/html')])
     return ['Hello, ', environ.get('REMOTE_USER', 'Anonymous Coward')]
-
-def gen_auth(username, password):
-    hexdigits = "0123456789abcdef"
-    nonce = "".join(hexdigits[int(random() * 16)] for x in range(32))
-    created = datetime.utcnow().isoformat() + "Z"
-    password_digest = "%s%s%s" % (nonce, created, 'airplane')
-    password_digest = sha(password_digest).digest().encode("base64").strip()
-    return 'UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s"' % (username, password_digest, nonce, created)
 
 def test_working():
     users = {'jefferson' : 'airplane'}
@@ -24,7 +16,7 @@ def test_working():
 
     test_app = paste.fixture.TestApp(wsse_app, extra_environ={
         'HTTP_AUTHORIZATION': 'WSSE profile="UsernameToken"',
-        'HTTP_X_WSSE' : gen_auth('jefferson', 'airplane')
+        'HTTP_X_WSSE' : wsse_header('jefferson', 'airplane')
         })
 
     test_app.get('/').mustcontain('Hello, jefferson')
@@ -40,7 +32,7 @@ def test_required():
 
     test_app = paste.fixture.TestApp(wsse_app, extra_environ={
         'HTTP_AUTHORIZATION': 'WSSE profile="UsernameToken"',
-        'HTTP_X_WSSE' : gen_auth('jefferson', 'airplane')
+        'HTTP_X_WSSE' : wsse_header('jefferson', 'airplane')
         })
 
     test_app.get('/').mustcontain('Hello, jefferson')

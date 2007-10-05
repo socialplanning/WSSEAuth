@@ -1,10 +1,12 @@
 from sha import sha
 import re
-import datetime
+from datetime import datetime, timedelta
 from wsseauth.fifo import Fifo
 
+from random import random
+
 w3dtf_re = re.compile("(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)(?:(Z)|([+-])(\d{2}):(\d{2}))")
-local_timezone_offset = datetime.datetime.utcnow() - datetime.datetime.now() #it's approximate, but so what?  Python's datetime libraries are such shit.
+local_timezone_offset = datetime.utcnow() - datetime.now() #it's approximate, but so what?  Python's datetime libraries are such shit.
 
 def parse_w3dtf(w3dtf):
     results = w3dtf_re.match(w3dtf)
@@ -26,9 +28,9 @@ def parse_w3dtf(w3dtf):
         if neg: 
             tz_adj_h = -tz_adj_h
             tz_adj_m = -tz_adj_m
-    date = datetime.datetime(y, mo, d, h, mi, s, int(frac * 100000))
+    date = datetime(y, mo, d, h, mi, s, int(frac * 100000))
     #convert from given tz to UTC
-    date -= datetime.timedelta(0, 0, 0, 0, tz_adj_m, tz_adj_h)
+    date -= timedelta(0, 0, 0, 0, tz_adj_m, tz_adj_h)
     #convert from UTC to local time
     date -= local_timezone_offset 
     return date
@@ -83,7 +85,7 @@ class WSSEAuthMiddleware:
             return self._fail(start_response)
 
         created_date = parse_w3dtf(created)
-        five_minutes_ago = datetime.datetime.now() - datetime.timedelta(0, 300, 0)
+        five_minutes_ago = datetime.now() - timedelta(0, 300, 0)
         if created_date < five_minutes_ago:
             #print "too old"
             return self._fail(start_response) #too old
@@ -104,3 +106,12 @@ class WSSEAuthMiddleware:
         environ['REMOTE_USER'] = username
         return self.app(environ, start_response)
 
+def wsse_header(username, password):
+    hexdigits = "0123456789abcdef"
+    nonce = "".join(hexdigits[int(random() * 16)] for x in range(32))
+    created = datetime.utcnow().isoformat() + "Z"
+    password_digest = "%s%s%s" % (nonce, created, password)
+    password_digest = sha(password_digest).digest().encode("base64").strip()
+    
+    header = 'UsernameToken Username="%s", PasswordDigest="%s", Nonce="%s", Created="%s"' % (username, password_digest, nonce, created)
+    return header
