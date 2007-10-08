@@ -104,6 +104,7 @@ class WSSEAuthMiddleware:
             return self._fail(start_response)
 
         environ['REMOTE_USER'] = username
+        environ['AUTHENTICATION_METHOD'] = 'WSSE'
         return self.app(environ, start_response)
 
 def wsse_header(username, password):
