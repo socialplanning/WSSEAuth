@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from wsseauth.fifo import Fifo
 
 from random import random
+from simplejson import dumps
 
 w3dtf_re = re.compile("(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)(?:(Z)|([+-])(\d{2}):(\d{2}))")
 local_timezone_offset = datetime.utcnow() - datetime.now() #it's approximate, but so what?  Python's datetime libraries are such shit.
@@ -36,18 +37,22 @@ def parse_w3dtf(w3dtf):
     return date
 
 class WSSEAuthMiddleware:
-    def __init__(self, app, user_dict, required = False):
+    def __init__(self, app, user_dict, required = False, json=True):
         self.app = app
         self.user_dict = user_dict
         self.nonces_by_time = Fifo()
         self.nonces_set = set()
         self.required = required
-
+        self.json = json
+        
     def _fail(self, start_response):
         status = "401 Authorization Required"
         headers = [('Content-type', 'text/plain'), ('WWW-Authenticate', 'WSSE realm="wsse", profile="UsernameToken"')]
         start_response(status, headers)
-        return ['Bad WSSE auth']
+        if self.json:
+            return [dumps({'status' : 'rejected', 'reason' : 'Bad WSSE Auth'})]
+        else:
+            return ['Bad WSSE Auth']
             
     def __call__(self, environ, start_response):
         #parse nonce, created, username out of ...
