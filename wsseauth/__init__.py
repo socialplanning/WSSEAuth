@@ -102,7 +102,7 @@ class WSSEAuthMiddleware:
         #remove old nonces
         while not self.nonces_by_time.empty() and self.nonces_by_time.top()[0] < five_minutes_ago:
             created_date, nonce = self.nonces_by_time.pop()
-            nonces_set.remove(nonce)
+            self.nonces_set.remove(nonce)
 
         key = "%s%s%s" % (nonce, created, password)        
         if not digest == sha(key).digest().encode("base64").strip():
